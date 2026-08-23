@@ -81,21 +81,21 @@ export function createCatalog(deps: {
   return {
     async get(): Promise<CatalogResult> {
       if (cached !== null && now() - cachedAt < deps.cacheMs) {
-        return { available: true, plugins: cached };
+        return { available: true, plugins: [...cached] };
       }
 
       try {
         const plugins = toPlugins(await deps.fetchCatalog());
         cached = plugins;
         cachedAt = now();
-        return { available: true, plugins };
+        return { available: true, plugins: [...plugins] };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
 
         if (cached !== null) {
           // Last known good. A stale list is always better than an empty page.
           deps.logger.warn('catalogue refresh failed, serving cache', { err: message });
-          return { available: true, plugins: cached };
+          return { available: true, plugins: [...cached] };
         }
 
         // Cold cache. The page renders and says so rather than showing an empty

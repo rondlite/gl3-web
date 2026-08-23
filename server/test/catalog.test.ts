@@ -151,6 +151,49 @@ describe('createCatalog', () => {
     await catalog.get();
     expect(calls).toBe(2);
   });
+
+  it('returns the cached plugins on a cache hit', async () => {
+    const catalog = catalogWith(async () => RESPONSE);
+
+    const first = await catalog.get();
+    expect(first).toEqual({
+      available: true,
+      plugins: [
+        {
+          name: '@gl3-plugins/plugin-a',
+          paid: true,
+          version: '1.0.0',
+          description: 'a paid plugin',
+          keywords: ['gl3'],
+          license: 'UNLICENSED',
+          install: 'npm install @gl3-plugins/plugin-a',
+        },
+        {
+          name: '@gl3/plugin-sdk',
+          paid: false,
+          version: '0.2.3',
+          description: 'the SDK',
+          keywords: [],
+          license: 'MIT',
+          install: 'npm install @gl3/plugin-sdk',
+        },
+      ],
+    });
+
+    const second = await catalog.get();
+    expect(second).toEqual(first);
+  });
+
+  it('does not expose the cached array to mutation', async () => {
+    const catalog = catalogWith(async () => RESPONSE);
+
+    const first = await catalog.get();
+    expect(first.plugins).toHaveLength(2);
+    first.plugins.push({ name: 'mutated', paid: false, version: '1.0.0', description: null, keywords: [], license: null, install: 'npm install mutated' });
+
+    const second = await catalog.get();
+    expect(second.plugins).toHaveLength(2);
+  });
 });
 
 let server: Server | undefined;
