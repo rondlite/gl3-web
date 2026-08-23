@@ -129,10 +129,11 @@ The ordering is load-bearing. The current code merges the config spec last, so a
 security decision. Assigning it afterwards makes that unreachable.
 
 `allow_publish` (`auth.ts:312`) and `allow_unpublish` (`auth.ts:378`) share the
-middleware factory and will begin receiving the field. This is intentional and inert:
-`verdaccio-auth-gl3` implements neither hook, and the builtin fallback ignores keys it
-does not read. Publish tarball uploads will report `tarball: true`, which nothing
-consumes.
+middleware factory, so the field reaches `Auth` on those paths too — but no further.
+Both destructure only `{ packageName, packageVersion }` and rebuild `pkg` from those
+two values, so `tarball` is discarded before any publish plugin can see it. The change
+is therefore inert on the publish paths by construction, not merely by convention, and
+no publish plugin can come to depend on it.
 
 The three other `allow_access` call sites are all metadata paths and pass no
 `filename`, so they land on `tarball: false` with no change required:
