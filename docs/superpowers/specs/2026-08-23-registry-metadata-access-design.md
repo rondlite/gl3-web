@@ -169,47 +169,72 @@ anonymous-defer branch, and the hard-403-on-not-entitled behaviour are all untou
 
 ### 3. Store-api — kind on the entitlement
 
-New migration `migrations/002_entitlement_kind.sql` — `001_init.sql` is currently the
-only one, and the repo's convention is that existing migration files are never edited:
+New migration `migrations/002_entitlement_access.sql` — `001_init.sql` is currently
+the only one, and the repo's convention is that existing migration files are never
+edited:
 
 ```sql
-alter table entitlements add column kind text not null default 'download'
-  check (kind in ('download', 'metadata'));
+alter table entitlements add column access text not null default 'download'
+  check (access in ('download', 'metadata'));
 ```
 
 Every existing row defaults to `download`; current customers are unaffected.
 
-`POST /v1/admin/users/:userId/entitlements` gains an optional `kind`, defaulting to
+The column is `access`, not `kind`. `packages.ts` already exports
+`PackagePattern.kind` with values `'exact' | 'scope'`, and `service.ts` imports it —
+two unrelated things called `kind` in one file is a trap. `access` also lines up with
+Verdaccio's own `allow_access`.
+
+`POST /v1/admin/users/:userId/entitlements` gains an optional `access`, defaulting to
 `download`. A value outside the two allowed strings is a 400, matching how the
 existing `package` field rejects shapes other than an exact name or the scope
 wildcard.
 
 `POST /v1/auth/authorize-package` gains an optional `tarball` boolean, defaulting to
-`true` when absent:
+`true` when absent.
 
-| Entitlement | `tarball` | Result |
+**The staff bypass comes first.** `authorizePackage` already grants every paid package
+to the roles in `STAFF_ROLES` (`admin`, `gl3-dev-lead`) with no entitlement row at all,
+so that a publisher is not blind to what they just published. Staff have no `access`
+value to consult, and metadata-only must not weaken them: staff keep full download
+access unconditionally. This is why the storefront service account **must not** hold a
+staff role — with one, its metadata entitlement would be bypassed entirely and the key
+would download tarballs freely. The account is created with `roles: []`.
+
+Resolution order, first match wins:
+
+| Condition | `tarball` | Result |
 | --- | --- | --- |
-| none | either | `403 {"error":"not_entitled"}` |
-| `download` | either | `200 {"ok":true}` |
-| `metadata` | `false` | `200 {"ok":true}` |
-| `metadata` | `true` | `403 {"error":"metadata_only"}` |
+| user missing or disabled | either | `403 {"error":"not_entitled"}` |
+| holds a staff role | either | `200 {"ok":true}` |
+| any live matching entitlement with `access = 'download'` | either | `200 {"ok":true}` |
+| live matching entitlements, all `access = 'metadata'` | `false` | `200 {"ok":true}` |
+| live matching entitlements, all `access = 'metadata'` | `true` | `403 {"error":"metadata_only"}` |
+| no live matching entitlement | either | `403 {"error":"not_entitled"}` |
+
+`download` beating `metadata` matters because `grantingPatterns` matches both the
+exact name and the scope wildcard, and the primary key is `(user_id, package)` — so
+one user can hold an exact-name `download` row and a wildcard `metadata` row at once.
+The more permissive of the two wins, as it must, or buying a single plugin would be
+undone by a metadata grant.
 
 `metadata_only` is a distinct code from `not_entitled` so a misconfigured key is
 diagnosable from logs rather than indistinguishable from an unpaid customer.
 
-A `kind` value read from the database that matches neither string returns 403, not
-500. Unknown means denied.
+An `access` value read from the database matching neither string returns 403, not 500.
+Unknown means denied.
 
 ### 4. Service account
 
 Operator work through existing admin routes, not code. It belongs in the store-api
 runbook:
 
-1. `POST /v1/admin/users` — create `storefront`.
+1. `POST /v1/admin/users` — create `storefront` with `roles: []`. A staff role here
+   would bypass the entitlement entirely (see above) and hand the key every tarball.
 2. `POST /v1/admin/users/:userId/tokens` — mint its token. The plaintext is returned
    once and never again; only a SHA-256 hash is stored.
 3. `POST /v1/admin/users/:userId/entitlements` with
-   `{"package": "@gl3-plugins/*", "kind": "metadata"}`.
+   `{"package": "@gl3-plugins/*", "access": "metadata"}`.
 
 The token and username are consumed by store-api in B as `REGISTRY_TOKEN` and
 `REGISTRY_USERNAME`, alongside `REGISTRY_URL`.
@@ -227,9 +252,8 @@ creates the constraint and B is where it can be violated.
 ## Testing
 
 **Store-api.** The suite runs against a real Postgres with `fileParallelism: false`
-and no mocks; new cases follow that. The authorize-package cases extend
-`test/auth.test.ts`; the admin-route `kind` validation extends
-`test/entitlements.test.ts`. Four `authorize-package` cases:
+and no mocks; new cases follow that. Everything lands in `test/entitlements.test.ts`,
+which already owns `authorize-package` and the grant route:
 
 | Case | Expected |
 | --- | --- |
@@ -237,10 +261,14 @@ and no mocks; new cases follow that. The authorize-package cases extend
 | `metadata` entitlement, `tarball: false` | 200 |
 | `download` entitlement, `tarball: true` | 200 |
 | `metadata` entitlement, field omitted | 403 `metadata_only` |
+| staff role, no entitlement, `tarball: true` | 200 |
+| wildcard `metadata` + exact `download`, `tarball: true` | 200 |
+| grant with `access: "sideways"` | 400 `invalid_access` |
 
-The last case is the fail-closed assertion. Existing download-entitlement tests must
-pass unchanged — that is the regression signal that paying customers were not
-affected.
+The omitted-field case is the fail-closed assertion; the staff case guards the bypass
+against regression; the mixed-grant case pins `download` beating `metadata`. Every
+existing test must pass unchanged — that is the regression signal that paying
+customers were not affected.
 
 **Fork.** A unit test on the allow middleware asserting `tarball` is `true` when
 `req.params.filename` is set and `false` when it is not.
@@ -317,8 +345,10 @@ Decisions taken at programme level, recorded here because A is the first spec wr
 - **One SKU for now.** Premium is the whole engine including all plugins, so the
   catalogue is a display list rather than a set of individually purchasable items.
   Entitlement stays the existing `@gl3-plugins/*` wildcard.
-- **gl3-web deploys as one container.** VitePress static output served by a Fastify
+- **gl3-web deploys as one container.** VitePress static output served by a Hono
   server that also hosts `/api/*` and holds `INTERNAL_API_KEY`, published as
   `ghcr.io/rondlite/gl3-web`, matching how gl3-server and gl3-store-api already ship.
+  Hono rather than Fastify because store-api is Hono 4 + zod + `@hono/node-server`,
+  and gl3-web is the only other service that will speak to it.
 - **Specs for all five live in the gl3-web repo**, each naming its target repo, so the
   programme reads in one place.
