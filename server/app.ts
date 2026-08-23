@@ -1,3 +1,4 @@
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 
 import type { CatalogResult } from './catalog.js';
@@ -6,9 +7,15 @@ import { type Logger, silentLogger } from './log.js';
 export type AppDeps = {
   catalog: { get: () => Promise<CatalogResult> };
   logger?: Logger;
+  /** Directory holding the VitePress build output. */
+  siteDist?: string;
 };
 
-export function createApp({ catalog, logger = silentLogger() }: AppDeps) {
+export function createApp({
+  catalog,
+  logger = silentLogger(),
+  siteDist = './site/.vitepress/dist',
+}: AppDeps) {
   const app = new Hono();
 
   // One line per request. Paths carry no secrets, and bodies and headers are
@@ -50,6 +57,10 @@ export function createApp({ catalog, logger = silentLogger() }: AppDeps) {
       return c.json({ available: false, plugins: [] });
     }
   });
+
+  // Registered last on purpose: Hono matches in registration order, so putting
+  // this above the API routes would let a file named like a route shadow it.
+  app.use('/*', serveStatic({ root: siteDist }));
 
   return app;
 }

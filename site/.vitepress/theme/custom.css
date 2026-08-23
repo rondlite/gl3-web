@@ -35,3 +35,77 @@
   border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
 }
+
+.gl3-plugins {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  margin: 24px 0;
+}
+
+.gl3-plugin {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.gl3-plugin header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.gl3-plugin h3 {
+  font-size: 15px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gl3-plugin p {
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  margin: 10px 0 14px;
+}
+
+.gl3-plugin footer {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.gl3-plugin code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.gl3-version {
+  color: var(--vp-c-text-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.gl3-tag {
+  border-radius: 999px;
+  flex: none;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 2px 9px;
+  text-transform: uppercase;
+}
+
+.gl3-tag.is-paid {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+.gl3-tag.is-free {
+  background: var(--vp-c-default-soft);
+  color: var(--vp-c-text-2);
+}
+
+.gl3-plugins-note {
+  color: var(--vp-c-text-2);
+  margin: 24px 0;
+}

@@ -18,7 +18,7 @@ const catalog = createCatalog({
   logger,
 });
 
-const app = createApp({ catalog, logger });
+const app = createApp({ catalog, logger, siteDist: env.SITE_DIST });
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   logger.info('listening', { port: info.port });
