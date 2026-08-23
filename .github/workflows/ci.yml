@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # The site build is verified here because no unit test covers it, so a
+      # broken VitePress config would otherwise reach the image.
+      - run: npm run build:site
+      # The build does not warn when a component fails to register: it silently
+      # renders nothing. Without this check, the plugins page could ship empty
+      # with every other signal green.
+      - name: Check the plugin grid rendered
+        run: grep -q "gl3-plugins-note" site/.vitepress/dist/plugins.html
