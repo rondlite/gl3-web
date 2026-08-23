@@ -1,12 +1,14 @@
 import { Hono } from 'hono';
 
+import type { CatalogResult } from './catalog.js';
 import { type Logger, silentLogger } from './log.js';
 
 export type AppDeps = {
+  catalog: { get: () => Promise<CatalogResult> };
   logger?: Logger;
 };
 
-export function createApp({ logger = silentLogger() }: AppDeps = {}) {
+export function createApp({ catalog, logger = silentLogger() }: AppDeps) {
   const app = new Hono();
 
   // One line per request. Paths carry no secrets, and bodies and headers are
@@ -34,6 +36,20 @@ export function createApp({ logger = silentLogger() }: AppDeps = {}) {
   });
 
   app.get('/healthz', (c) => c.json({ ok: true }));
+
+  app.get('/api/plugins', async (c) => {
+    try {
+      return c.json(await catalog.get());
+    } catch (err) {
+      // The catalogue already handles its own failures, so reaching here means
+      // something unexpected. Degrade the section rather than the page, and keep
+      // the error out of the response: it can carry the upstream URL and key.
+      logger.error('plugins route failed', {
+        err: err instanceof Error ? err.message : String(err),
+      });
+      return c.json({ available: false, plugins: [] });
+    }
+  });
 
   return app;
 }
