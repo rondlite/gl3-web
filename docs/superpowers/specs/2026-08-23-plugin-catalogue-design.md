@@ -136,11 +136,17 @@ The existing entitlement validators are **not** loosened. They are a security bo
 packages through the entitlement check. B must not touch them, and a test asserts they
 still reject `@gl3/*`.
 
-**Caveat on `isPaidPackage`,** recorded because it is an assumption rather than a fact
-the registry tells us: Verdaccio's `public_packages` setting can make a name inside
-`@gl3-plugins/` free without renaming it. That list is empty today. If it is ever
-populated, the derivation stops matching reality and the flag has to come from
-configuration or from the registry instead.
+**Known failure mode in `isPaidPackage`,** stated as a risk rather than a caveat because
+of what it costs when it fires: Verdaccio's `public_packages` setting can make a name
+inside `@gl3-plugins/` free without renaming it. The derivation would then report that
+package as paid, and **the website would advertise a free package as something you must
+buy, with no signal anywhere that it had happened** — no error, no stale flag, nothing in
+a log. The list is empty today, which is the only reason this is safe.
+
+Whoever populates `public_packages` must change this derivation in the same change. The
+durable fix is to source the flag from configuration shared with the registry, or from
+the registry itself, rather than from the name; that is deferred only because a
+one-element source of truth is not worth building against an empty list.
 
 ### 3. Registry client
 
@@ -312,7 +318,7 @@ Real Postgres, no mocks, `fileParallelism: false`, matching the existing suite. 
 | --- | --- |
 | manifest returned | fields written, `fetched_at` stamped, `fetch_error` null |
 | fetch throws | previous values intact, `fetched_at` unchanged, `fetch_error` set |
-| fetch returns null (404) | previous values intact, `fetch_error` = `not_published` |
+| fetch returns null (404) | previous values intact, `fetched_at` **stamped**, `fetch_error` = `not_published` |
 | one of three packages throws | other two still refreshed; result counts 2/1/0 |
 | never-fetched package | nulls, `stale` true |
 
