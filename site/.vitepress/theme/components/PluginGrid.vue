@@ -1,9 +1,39 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 
 // 'loading' until the first response, then 'ready' or 'unavailable'.
 const state = ref('loading')
 const plugins = ref([])
+
+const expanded = ref(new Set())
+const overflowing = ref(new Set())
+const descriptionEls = new Map()
+
+function registerDescription(name, el) {
+  if (el === null) {
+    descriptionEls.delete(name)
+  } else {
+    descriptionEls.set(name, el)
+  }
+}
+
+function toggle(name) {
+  const next = new Set(expanded.value)
+  next.has(name) ? next.delete(name) : next.add(name)
+  expanded.value = next
+}
+
+// A control that expands nothing is worse than no control, so it only appears
+// on the cards whose text is actually taller than the clamp allows.
+function measure() {
+  const next = new Set()
+  for (const [name, el] of descriptionEls) {
+    if (el.scrollHeight > el.clientHeight + 1) {
+      next.add(name)
+    }
+  }
+  overflowing.value = next
+}
 
 onMounted(async () => {
   // Bounds the request so a stalled connection between the browser and the
@@ -31,6 +61,12 @@ onMounted(async () => {
     state.value = 'unavailable'
   } finally {
     clearTimeout(timeoutId)
+    // Runs for every outcome above, not just the happy path: an empty list or
+    // an unavailable catalogue still needs the DOM update from the state
+    // change to flush before measure() looks for cards, and calling it
+    // unconditionally here means no branch can forget to.
+    await nextTick()
+    measure()
   }
 })
 </script>
@@ -51,13 +87,30 @@ onMounted(async () => {
     <li v-for="plugin in plugins" :key="plugin.name">
       <article class="gl3-plugin">
         <header>
-          <h3>{{ plugin.name }}</h3>
+          <h3><a :href="plugin.href">{{ plugin.name }}</a></h3>
           <span :class="['gl3-tag', plugin.paid ? 'is-paid' : 'is-free']">
             {{ plugin.paid ? 'Premium' : 'Free' }}
           </span>
         </header>
 
-        <p v-if="plugin.description">{{ plugin.description }}</p>
+        <div v-if="plugin.descriptionHtml" class="gl3-plugin-description">
+          <!-- Already sanitised by the server, which is the only place package
+               markdown becomes HTML. Nothing here re-parses it. -->
+          <p
+            :class="{ 'is-clamped': !expanded.has(plugin.name) }"
+            :ref="(el) => registerDescription(plugin.name, el)"
+            v-html="plugin.descriptionHtml"
+          ></p>
+          <button
+            v-if="overflowing.has(plugin.name)"
+            type="button"
+            class="gl3-plugin-more"
+            :aria-expanded="expanded.has(plugin.name)"
+            @click="toggle(plugin.name)"
+          >
+            {{ expanded.has(plugin.name) ? 'Show less' : 'Show more' }}
+          </button>
+        </div>
 
         <footer>
           <code>{{ plugin.install }}</code>

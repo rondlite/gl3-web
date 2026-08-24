@@ -111,3 +111,24 @@
   color: var(--vp-c-text-2);
   margin: 24px 0;
 }
+
+.gl3-plugin-description p.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gl3-plugin-description :is(strong, em, code) {
+  /* Publisher markup renders inside a card, so it must not change the line box. */
+  font-size: inherit;
+}
+
+.gl3-plugin-more {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--vp-c-brand-1);
+  cursor: pointer;
+  font: inherit;
+}
