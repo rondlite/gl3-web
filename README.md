@@ -15,7 +15,6 @@ browser ──> gl3-web ──> gl3-store-api /v1/catalog/packages
 ```bash
 npm install
 npm run dev:site      # VitePress on 5173, no catalogue
-npm run dev:server    # the API and static serving on 8080
 ```
 
 `npm run dev:site` gives fast page editing but no `/api/plugins`, so the plugins page
