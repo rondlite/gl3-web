@@ -1,0 +1,1 @@
+this is a static file, not the healthz route, and must never be served at /healthz
