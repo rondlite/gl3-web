@@ -16,6 +16,16 @@ starter content seeded, the web client, and a router that keeps the browser same
 Open <http://localhost:8080> and register. The first player to register becomes the
 administrator.
 
+That default boot is the gangster game. For the engine on its own, with the eight
+game-agnostic plugins and none of the gameplay:
+
+```bash
+GL3_PROFILE=framework docker compose --profile app up
+```
+
+Gameplay plugins can be added back one at a time with `PLUGIN_IDS`. See
+[The framework profile](https://docs.gl3.dev/operators/framework-profile.html).
+
 By default the email verification link is printed to the logs rather than sent:
 
 ```bash
@@ -28,10 +38,11 @@ Set `GL3_PUBLIC_ORIGIN` to the URL players will reach the game at, since it feed
 CORS allowlist that the WebSocket gateway also checks, and set `GL3_PORT` if 8080 is
 taken. Nothing else needs editing.
 
-## Bring a V2 game across
+## Bring an existing game across
 
-`gl3-migrate` moves an existing Gangster Legends V2 game in one command, players and
-passwords included. See [Migrating from V2](https://docs.gl3.dev) in the documentation.
+`gl3-migrate` moves an existing Gangster Legends V2 or openPBBG game in one command,
+players and passwords included. See
+[Migrating from V2 or openPBBG](https://docs.gl3.dev) in the documentation.
 
 ## Where to go next
 

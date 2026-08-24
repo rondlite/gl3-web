@@ -2,7 +2,8 @@ import { defineConfig } from 'vitepress';
 
 export default defineConfig({
   title: 'GL3',
-  description: 'A modern engine for text based gangster games, and the move off Gangster Legends V2.',
+  description:
+    'A platform for persistent browser games. The default boot is a complete gangster game, and the framework profile is the engine on its own.',
   // cleanUrls stays off so pages are served as plain .html files with no server
   // side rewriting. docs.gl3.dev already serves URLs this way.
   cleanUrls: false,
