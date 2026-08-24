@@ -11,7 +11,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Plugins', link: '/plugins.html' },
-      { text: 'Pricing', link: '/pricing.html' },
+      { text: 'Premium', link: '/pricing.html' },
       { text: 'Get started', link: '/get-started.html' },
       { text: 'Docs', link: 'https://docs.gl3.dev' },
     ],
