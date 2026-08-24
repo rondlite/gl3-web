@@ -87,7 +87,15 @@ onMounted(async () => {
     <li v-for="plugin in plugins" :key="plugin.name">
       <article class="gl3-plugin">
         <header>
-          <h3><a :href="plugin.href">{{ plugin.name }}</a></h3>
+          <!-- target="_self" is load bearing. VitePress intercepts every
+               same origin link ending in .html and resolves it against its own
+               route table, which these server rendered pages are not in, so a
+               plain link renders VitePress's 404 without ever reaching the
+               server. Its router skips interception only for a link carrying
+               "download" or "target", and it does not look at rel, so
+               rel="external" would not work here. "_self" keeps the navigation
+               in the same tab while forcing a real request. -->
+          <h3><a :href="plugin.href" target="_self">{{ plugin.name }}</a></h3>
           <span :class="['gl3-tag', plugin.paid ? 'is-paid' : 'is-free']">
             {{ plugin.paid ? 'Premium' : 'Free' }}
           </span>

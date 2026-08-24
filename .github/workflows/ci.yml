@@ -33,6 +33,15 @@ jobs:
       # component having mounted at some point during the build.
       - name: Check the plugins page has a no-JS fallback
         run: grep -q "needs JavaScript to load the plugin catalogue" site/.vitepress/dist/plugins.html
+      # VitePress intercepts every same origin link ending in .html and resolves
+      # it against its own route table. Plugin pages are rendered by the server
+      # and are not in that table, so without target="_self" on the card link
+      # every plugin title renders VitePress's 404 instead of the page. Nothing
+      # else catches this: the build succeeds, the tests pass, and the failure
+      # appears only when a visitor clicks. The chunk name is content hashed,
+      # hence the glob.
+      - name: Check plugin links bypass the VitePress router
+        run: grep -rq 'target:"_self"' site/.vitepress/dist/assets/
 
   docker:
     runs-on: ubuntu-latest
