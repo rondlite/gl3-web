@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
 
 import { createApp } from './app.js';
-import { createCatalog, createStoreApiFetch } from './catalog.js';
+import { createCatalog, createStoreApiDetailFetch, createStoreApiFetch } from './catalog.js';
 import { loadEnv } from './env.js';
 import { createLogger } from './log.js';
 
@@ -10,6 +10,11 @@ const logger = createLogger(env.LOG_LEVEL);
 
 const catalog = createCatalog({
   fetchCatalog: createStoreApiFetch({
+    url: env.STORE_API_URL,
+    key: env.INTERNAL_API_KEY,
+    timeoutMs: 5000,
+  }),
+  fetchDetail: createStoreApiDetailFetch({
     url: env.STORE_API_URL,
     key: env.INTERNAL_API_KEY,
     timeoutMs: 5000,

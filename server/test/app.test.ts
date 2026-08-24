@@ -11,9 +11,11 @@ const READY: CatalogResult = {
       paid: true,
       version: '1.0.0',
       description: 'a paid plugin',
+      descriptionHtml: 'a paid plugin',
       keywords: ['gl3'],
       license: 'UNLICENSED',
       install: 'npm install @gl3-plugins/plugin-a',
+      href: '/plugins/gl3-plugins/plugin-a.html',
     },
   ],
 };
