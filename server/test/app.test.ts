@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createApp } from '../app.js';
+import { PLUGIN_SCOPES } from '../catalog.js';
 import type { CatalogResult, Plugin, PluginDetail } from '../catalog.js';
 
 const READY: CatalogResult = {
@@ -145,6 +146,24 @@ describe('the plugin page route', () => {
 
     expect((await app.request('/plugins/evil/x.html')).status).toBe(404);
     expect(calls).toBe(0);
+  });
+
+  it('serves every scope the catalogue can address', async () => {
+    // The route and pluginHref must not be able to disagree: a scope that gets
+    // a card and a sitemap entry has to have a page behind it.
+    const app = createApp({
+      catalog: {
+        get: async () => ({ available: true, plugins: [] }),
+        getDetail: async () => ({ available: true, plugin: detail() }),
+      },
+      stylesheets: [],
+      origin: 'https://gl3.dev',
+    });
+
+    for (const scope of PLUGIN_SCOPES) {
+      const response = await app.request(`/plugins/${scope}/thing.html`);
+      expect(response.status).toBe(200);
+    }
   });
 
   it('503s when the catalogue is unreachable, so a crawler comes back', async () => {

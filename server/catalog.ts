@@ -21,15 +21,33 @@ export type Plugin = {
 export type PluginDetail = Plugin & { readmeHtml: string | null };
 
 /**
- * Builds a plugin's page URL.
+ * The scopes the site serves a page for.
+ *
+ * Exported because the route needs the same list: it is what stops an invented
+ * URL reaching store-api. Held here, next to pluginHref, so the two cannot
+ * drift apart and start disagreeing about which URLs exist.
+ */
+export const PLUGIN_SCOPES = ['gl3', 'gl3-plugins'] as const;
+
+const scopes: ReadonlySet<string> = new Set(PLUGIN_SCOPES);
+
+/**
+ * Builds a plugin's page URL, or null for a package the site cannot address.
  *
  * The scope keeps its own path segment with the "@" dropped, rather than being
  * flattened into the name with a hyphen. Flattening collides: "@gl3-plugins/fixer"
  * and "@gl3/plugins-fixer" would both become "gl3-plugins-fixer", and both
  * scopes are real in this catalogue. Two segments cannot.
+ *
+ * Null rather than a best-effort URL for an unscoped name or an unknown scope.
+ * Every href this returns is advertised to crawlers in the sitemap and rendered
+ * as a card link, so a URL the route would 404 is worse than no card at all.
  */
-export function pluginHref(packageName: string): string {
+export function pluginHref(packageName: string): string | null {
   const [scope, name] = packageName.replace(/^@/, '').split('/');
+  if (scope === undefined || name === undefined || !scopes.has(scope)) {
+    return null;
+  }
   return `/plugins/${scope}/${name}.html`;
 }
 
@@ -62,15 +80,29 @@ const responseSchema = z.object({
   ),
 });
 
-function toPlugins(body: unknown): Plugin[] {
+function toPlugins(body: unknown, logger: Logger): Plugin[] {
   const parsed = responseSchema.parse(body);
 
-  return parsed.packages
+  const plugins: Plugin[] = [];
+
+  for (const pkg of parsed.packages) {
     // A package whose metadata never arrived has a null version. A card with no
     // version and no description reads as broken rather than pending, so it is
     // better not to render one.
-    .filter((pkg): pkg is typeof pkg & { version: string } => pkg.version !== null)
-    .map((pkg) => ({
+    if (pkg.version === null) {
+      continue;
+    }
+
+    const href = pluginHref(pkg.package);
+    if (href === null) {
+      // A scope the route does not serve. Dropping it keeps the grid and the
+      // sitemap free of URLs that 404, and the warning is how anyone finds out
+      // a new scope needs adding to PLUGIN_SCOPES.
+      logger.warn('package skipped, no page can be addressed for it', { package: pkg.package });
+      continue;
+    }
+
+    plugins.push({
       name: pkg.package,
       paid: pkg.paid,
       version: pkg.version,
@@ -79,8 +111,11 @@ function toPlugins(body: unknown): Plugin[] {
       keywords: pkg.keywords,
       license: pkg.license,
       install: `npm install ${pkg.package}`,
-      href: pluginHref(pkg.package),
-    }));
+      href,
+    });
+  }
+
+  return plugins;
 }
 
 /**
@@ -101,7 +136,12 @@ const detailSchema = z.object({
 export type DetailFetch = (packageName: string) => Promise<unknown>;
 
 export type DetailResult = {
-  /** False when store-api could not be reached and nothing was cached. */
+  /**
+   * False only when the catalogue list itself is unreachable and nothing was
+   * cached, which is the case the route answers with 503. A package whose
+   * readme could not be fetched is still available: its page renders from list
+   * metadata with a note in place of the readme.
+   */
   available: boolean;
   /** Null when the package is not in the catalogue. */
   plugin: PluginDetail | null;
@@ -145,6 +185,11 @@ export function createCatalog(deps: {
   // cannot grow this map.
   const details = new Map<string, { plugin: PluginDetail; at: number }>();
   const detailPending = new Map<string, Promise<DetailResult>>();
+  // The detail path's negative cache, keyed the same way. Without it a crawler
+  // walking the sitemap during an outage opens one upstream call per plugin per
+  // pass, each waiting out the timeout, even though every one of those requests
+  // can already be answered from list metadata.
+  const detailFailedAt = new Map<string, number>();
 
   function toDetail(list: Plugin, body: unknown): PluginDetail {
     const parsed = detailSchema.parse(body);
@@ -161,10 +206,12 @@ export function createCatalog(deps: {
       }
       const plugin = toDetail(list, body);
       details.set(packageName, { plugin, at: now() });
+      detailFailedAt.delete(packageName);
       return { available: true, plugin };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const cachedDetail = details.get(packageName);
+      detailFailedAt.set(packageName, now());
 
       if (cachedDetail !== undefined) {
         // Last known good, the same rule the list follows. A stale readme is
@@ -176,17 +223,22 @@ export function createCatalog(deps: {
         return { available: true, plugin: cachedDetail.plugin };
       }
 
-      deps.logger.error('detail unavailable and nothing cached', {
+      // No readme, but the list entry holds the name, version, licence,
+      // description and install line, which is a page worth serving. available
+      // stays true because the catalogue itself is fine; false is reserved for
+      // the list being unreachable, which getDetail answers before it gets
+      // here.
+      deps.logger.warn('detail unavailable, serving list metadata without a readme', {
         package: packageName,
         err: message,
       });
-      return { available: false, plugin: null };
+      return { available: true, plugin: { ...list, readmeHtml: null } };
     }
   }
 
   async function refresh(): Promise<CatalogResult> {
     try {
-      const plugins = toPlugins(await deps.fetchCatalog());
+      const plugins = toPlugins(await deps.fetchCatalog(), deps.logger);
       cached = plugins;
       cachedAt = now();
       failedAt = null;
@@ -248,6 +300,15 @@ export function createCatalog(deps: {
       const cachedDetail = details.get(packageName);
       if (cachedDetail !== undefined && now() - cachedDetail.at < deps.cacheMs) {
         return { available: true, plugin: cachedDetail.plugin };
+      }
+
+      const failed = detailFailedAt.get(packageName);
+      if (failed !== undefined && now() - failed < NEGATIVE_CACHE_MS) {
+        // A recent attempt failed, so answer from what is already here rather
+        // than reattempting store-api for every request during an outage.
+        return cachedDetail === undefined
+          ? { available: true, plugin: { ...list, readmeHtml: null } }
+          : { available: true, plugin: cachedDetail.plugin };
       }
 
       let inFlight = detailPending.get(packageName);

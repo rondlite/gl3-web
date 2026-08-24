@@ -1,7 +1,9 @@
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
 import type { Plugin, PluginDetail } from '../catalog.js';
-import { renderPluginPage, renderSitemap } from '../plugin-page.js';
+import { discoverStylesheets, renderPluginPage, renderSitemap } from '../plugin-page.js';
 
 function plugin(overrides: Partial<PluginDetail> = {}): PluginDetail {
   return {
@@ -84,6 +86,52 @@ describe('renderPluginPage', () => {
     const html = renderPluginPage({ plugin: plugin(), stylesheets: [], origin });
     expect(html).toContain('https://gl3.dev/plugins/gl3-plugins/fixer.html');
   });
+
+  it('escapes an apostrophe, which the helper owes its callers', () => {
+    const html = renderPluginPage({
+      plugin: plugin({ description: "it's ours" }),
+      stylesheets: [],
+      origin,
+    });
+    expect(html).toContain('it&#39;s ours');
+    expect(html).not.toContain("it's ours");
+  });
+});
+
+const VITE_DIST = './server/test/fixtures/vite-dist';
+const REAL_DIST = './site/.vitepress/dist';
+
+describe('discoverStylesheets', () => {
+  it('finds the stylesheet in the shape Vite actually emits', async () => {
+    // rel carries two tokens and href sits between rel and as. A pattern that
+    // demands rel="stylesheet" or a fixed attribute order matches nothing here.
+    expect(await discoverStylesheets(VITE_DIST)).toEqual([
+      '/assets/style.DM80HEo_.css',
+      '/vp-icons.css',
+    ]);
+  });
+
+  it('ignores a preload that is not a stylesheet', async () => {
+    const found = await discoverStylesheets(VITE_DIST);
+    expect(found.some((href) => href.endsWith('.woff2'))).toBe(false);
+    expect(found.some((href) => href.endsWith('.js'))).toBe(false);
+  });
+
+  it('returns nothing when the build output is missing, so the page still renders', async () => {
+    expect(await discoverStylesheets('./server/test/fixtures/no-such-build')).toEqual([]);
+  });
+
+  // Asserted against the real build rather than a fixture: the fixture only
+  // proves the regex matches what Vite emitted when it was written, and this is
+  // the check that fails when a future Vite changes the markup.
+  it.skipIf(!existsSync(`${REAL_DIST}/index.html`))(
+    "matches this repository's own build output",
+    async () => {
+      const found = await discoverStylesheets(REAL_DIST);
+      expect(found.length).toBeGreaterThan(0);
+      expect(found.every((href) => href.endsWith('.css'))).toBe(true);
+    }
+  );
 });
 
 describe('renderSitemap', () => {
@@ -98,5 +146,12 @@ describe('renderSitemap', () => {
     const xml = renderSitemap({ plugins: [], origin });
     expect(xml).toContain('<urlset');
     expect(xml).toContain('</urlset>');
+  });
+
+  // The sitemap is the only path by which a crawler reaches a plugin page, so
+  // the file that advertises it is part of the feature, not decoration.
+  it('is advertised to crawlers by robots.txt', async () => {
+    const robots = await readFile('./site/public/robots.txt', 'utf-8');
+    expect(robots).toContain('Sitemap: https://gl3.dev/sitemap.xml');
   });
 });

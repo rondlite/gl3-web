@@ -22,7 +22,11 @@ function escapeHtml(value: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    // Every attribute this module writes is double quoted, so no call site
+    // needs this today. It is here because a security primitive should not
+    // depend on the habits of its callers.
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -36,8 +40,17 @@ function escapeHtml(value: string): string {
 export async function discoverStylesheets(siteDist: string): Promise<string[]> {
   try {
     const html = await readFile(join(siteDist, 'index.html'), 'utf-8');
+    // Matches "stylesheet" as one token inside rel, because Vite emits
+    // rel="preload stylesheet", and finds href independently of where it sits
+    // in the tag. A pattern that demanded rel="stylesheet" or a fixed
+    // attribute order matched nothing this build produces.
+    //
     // A global regex, required by matchAll, which otherwise throws.
-    const matches = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)];
+    const matches = [
+      ...html.matchAll(
+        /<link\b(?=[^>]*\brel="(?:[^"]*\s)?stylesheet(?:\s[^"]*)?")[^>]*\bhref="([^"]+)"/g
+      ),
+    ];
     return matches
       .map((match) => match[1])
       .filter((href): href is string => href !== undefined);

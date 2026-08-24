@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { PLUGIN_SCOPES } from './catalog.js';
 import type { CatalogResult, DetailResult } from './catalog.js';
 import { type Logger, silentLogger } from './log.js';
 import { renderPluginPage, renderSitemap } from './plugin-page.js';
@@ -71,8 +72,11 @@ export function createApp({
   });
 
   // Only our own scopes. Rejecting anything else here means an invented URL
-  // never reaches store-api.
-  const SCOPES = new Set(['gl3', 'gl3-plugins']);
+  // never reaches store-api. The list comes from catalog.ts, which is also
+  // where pluginHref decides which packages get a link and a sitemap entry, so
+  // the route cannot end up serving a different set of URLs than the site
+  // advertises.
+  const SCOPES: ReadonlySet<string> = new Set(PLUGIN_SCOPES);
 
   app.get('/plugins/:scope/:file', async (c, next) => {
     const scope = c.req.param('scope');

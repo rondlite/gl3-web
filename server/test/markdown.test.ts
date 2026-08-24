@@ -20,6 +20,35 @@ describe('renderInline', () => {
     const html = renderInline('![badge](https://img.example/b.svg)');
     expect(html).not.toContain('<img');
   });
+
+  it('keeps the inline formatting a description is allowed to use', () => {
+    expect(renderInline('*a* and `b`')).toBe('<em>a</em> and <code>b</code>');
+  });
+});
+
+// A description is publisher controlled and renders inside a card. Markdown is
+// not the only way in: parseInline passes raw HTML straight through, so the
+// allowlist is what actually holds the card's shape, and these are the tests
+// that exercise it.
+describe('renderInline stays inline', () => {
+  it('strips raw block HTML a publisher writes instead of markdown', () => {
+    const html = renderInline('<h1>BIG</h1><div>block</div><table><tr><td>cell</td></tr></table>');
+    expect(html).not.toContain('<h1');
+    expect(html).not.toContain('<div');
+    expect(html).not.toContain('<table');
+  });
+
+  it('strips a pre block, which would break the clamp', () => {
+    expect(renderInline('<pre>wide</pre>')).not.toContain('<pre');
+  });
+
+  it('drops class, so a description cannot wear the storefront own badge', () => {
+    // custom.css is global, so .gl3-tag.is-paid inside a card would render the
+    // site's own "Premium" marker on a package that never paid for it.
+    const html = renderInline('x <span class="gl3-tag is-paid">Premium</span>');
+    expect(html).not.toContain('gl3-tag');
+    expect(html).not.toContain('class=');
+  });
 });
 
 describe('renderBlock', () => {

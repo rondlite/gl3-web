@@ -59,6 +59,25 @@ const blockOptions: sanitizeHtml.IOptions = {
   allowedSchemesByTag: { img: ['https'] },
 };
 
+// Inline rendering gets its own allowlist rather than inheriting the block
+// one. Choosing parseInline is not enough on its own: it declines to turn "#"
+// into a heading, but it passes raw HTML through untouched, so a publisher who
+// writes <h1> or <table> instead of markdown gets it back unless the allowlist
+// refuses. This list is inline formatting only.
+//
+// class is absent on purpose, for both a and span. The site's CSS is global,
+// so a class name in a description could render the storefront's own
+// .gl3-tag.is-paid "Premium" badge inside a card that never earned it.
+const inlineOptions: sanitizeHtml.IOptions = {
+  ...baseOptions,
+  allowedTags: [
+    'a', 'b', 'i', 'em', 'strong', 'code', 'del', 's', 'sup', 'sub', 'br', 'abbr', 'kbd',
+  ],
+  allowedAttributes: {
+    a: ['href', 'title', 'rel', 'target'],
+  },
+};
+
 /**
  * Renders a card description.
  *
@@ -72,7 +91,7 @@ export function renderInline(src: string | null): string | null {
   if (src === null) {
     return null;
   }
-  return sanitizeHtml(marked.parseInline(src, { async: false }), baseOptions);
+  return sanitizeHtml(marked.parseInline(src, { async: false }), inlineOptions);
 }
 
 /** Renders a full README for a plugin page. */
