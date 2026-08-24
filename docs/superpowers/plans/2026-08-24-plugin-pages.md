@@ -750,11 +750,15 @@ describe('renderPluginPage', () => {
 
   it('escapes the package name in the title', () => {
     const html = renderPluginPage({
-      plugin: plugin({ name: '@gl3/<script>' }),
+      plugin: plugin({ name: '@gl3/<script>alert(1)</script>' }),
       stylesheets: [],
       origin,
     });
-    expect(html).not.toContain('<script>');
+    // Assert on the escaped form rather than the absence of "<script>": the
+    // page carries its own theme script, so a bare absence check would fail
+    // on the page's own markup and prove nothing about the package name.
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('<script>alert(1)');
   });
 
   it('gives Open Graph an absolute URL', () => {
