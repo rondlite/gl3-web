@@ -10,6 +10,31 @@ never sees it and never talks to store-api directly.
 browser ──> gl3-web ──> gl3-store-api /v1/catalog/packages
 ```
 
+The server also renders a page per catalogued plugin and a sitemap:
+
+- `GET /plugins/<scope>/<name>.html` renders the package's full README, for example
+  `@gl3-plugins/fixer` at `/plugins/gl3-plugins/fixer.html`. The scope keeps its own path
+  segment because flattening it into the name would collide: `@gl3-plugins/fixer` and
+  `@gl3/plugins-fixer` would both flatten to the same string.
+- `GET /sitemap.xml` lists the built pages and every plugin page. This is not decorative:
+  the plugin grid is rendered in the browser, so a crawler following links would never
+  reach a plugin page, and the sitemap is the only way they are discoverable. It returns
+  `503` rather than a sitemap missing every plugin when the catalogue is unreachable.
+
+Both routes are rendered server side rather than in the browser, and that is deliberate.
+The site is built by GitHub Actions, and store-api has no public hostname, so the build
+cannot reach the catalogue, and nothing can be generated from catalogue data at build
+time. The server can: it already holds `INTERNAL_API_KEY` and already fetches the
+catalogue for `/api/plugins`. A useful consequence is that no markdown parser or
+sanitiser ships to visitors, and a newly registered plugin gets a page on the next cache
+expiry rather than on the next deploy. Before undoing this and moving rendering back to
+the browser, re-check that store-api is still unreachable from CI.
+
+Package README markdown is converted to HTML in `server/markdown.ts`, using `marked` to
+parse and `sanitize-html` to sanitise. Package READMEs are publisher controlled, so this
+file is a security boundary; its tests in `server/test/markdown.test.ts` exist to fail if
+the sanitiser is ever removed or reconfigured.
+
 ## Development
 
 ```bash
@@ -46,6 +71,7 @@ broken config cannot ship.
 | `CATALOG_CACHE_MS` | no | Default 60000 |
 | `SITE_DIST` | no | Default `./site/.vitepress/dist`. Resolved relative to the process working directory, so an absolute path serves nothing. |
 | `LOG_LEVEL` | no | Default `info` |
+| `PUBLIC_ORIGIN` | no | Default `https://gl3.dev`. Absolute base URL used for canonical links, Open Graph tags and the sitemap. |
 
 `STORE_API_URL` and `INTERNAL_API_KEY` are required. A site with no catalogue source has
 a permanently broken plugins page, so it refuses to start rather than serving one.

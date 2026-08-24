@@ -45,4 +45,11 @@ describe('loadEnv', () => {
       /INTERNAL_API_KEY/
     );
   });
+
+  it('defaults PUBLIC_ORIGIN and strips a trailing slash', () => {
+    expect(loadEnv(BASE).PUBLIC_ORIGIN).toBe('https://gl3.dev');
+    expect(loadEnv({ ...BASE, PUBLIC_ORIGIN: 'https://x.dev/' }).PUBLIC_ORIGIN).toBe(
+      'https://x.dev'
+    );
+  });
 });

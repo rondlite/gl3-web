@@ -3,20 +3,31 @@ import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { CatalogResult } from './catalog.js';
+import { PLUGIN_SCOPES } from './catalog.js';
+import type { CatalogResult, DetailResult } from './catalog.js';
 import { type Logger, silentLogger } from './log.js';
+import { renderPluginPage, renderSitemap } from './plugin-page.js';
 
 export type AppDeps = {
-  catalog: { get: () => Promise<CatalogResult> };
+  catalog: {
+    get: () => Promise<CatalogResult>;
+    getDetail: (packageName: string) => Promise<DetailResult>;
+  };
   logger?: Logger;
   /** Directory holding the VitePress build output. */
   siteDist?: string;
+  /** Built stylesheet paths, discovered at startup. */
+  stylesheets?: string[];
+  /** Absolute base URL, for canonical links and the sitemap. */
+  origin?: string;
 };
 
 export function createApp({
   catalog,
   logger = silentLogger(),
   siteDist = './site/.vitepress/dist',
+  stylesheets = [],
+  origin = 'https://gl3.dev',
 }: AppDeps) {
   const app = new Hono();
 
@@ -58,6 +69,54 @@ export function createApp({
       });
       return c.json({ available: false, plugins: [] });
     }
+  });
+
+  // Only our own scopes. Rejecting anything else here means an invented URL
+  // never reaches store-api. The list comes from catalog.ts, which is also
+  // where pluginHref decides which packages get a link and a sitemap entry, so
+  // the route cannot end up serving a different set of URLs than the site
+  // advertises.
+  const SCOPES: ReadonlySet<string> = new Set(PLUGIN_SCOPES);
+
+  app.get('/plugins/:scope/:file', async (c, next) => {
+    const scope = c.req.param('scope');
+    const file = c.req.param('file');
+
+    if (!SCOPES.has(scope) || !file.endsWith('.html')) {
+      // next() rather than a 404 here, so a real file at this path is still
+      // served and the notFound handler produces the styled page.
+      return next();
+    }
+
+    const packageName = `@${scope}/${file.slice(0, -'.html'.length)}`;
+    const result = await catalog.getDetail(packageName);
+
+    if (!result.available) {
+      // 503 rather than 404: an outage must not be recorded by a crawler as a
+      // permanent absence.
+      return c.text('The plugin catalogue is not reachable right now.', 503);
+    }
+
+    if (result.plugin === null) {
+      return next();
+    }
+
+    return c.html(renderPluginPage({ plugin: result.plugin, stylesheets, origin }));
+  });
+
+  app.get('/sitemap.xml', async (c) => {
+    const { available, plugins } = await catalog.get();
+
+    if (!available) {
+      // 503 rather than a sitemap missing every plugin: the same reasoning as
+      // the detail route above. No sitemap during an outage is recoverable; a
+      // sitemap that drops every plugin URL reads to a crawler as mass removal.
+      return c.text('The plugin catalogue is not reachable right now.', 503);
+    }
+
+    return c.text(renderSitemap({ plugins, origin }), 200, {
+      'content-type': 'application/xml; charset=UTF-8',
+    });
   });
 
   // Registered last on purpose: Hono matches in registration order, so putting

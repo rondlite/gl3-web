@@ -5,9 +5,12 @@ import type { CatalogResult } from '../catalog.js';
 
 const EMPTY: CatalogResult = { available: true, plugins: [] };
 
+// Never exercised by these tests, none of which hit a /plugins/:scope/:file path.
+const getDetail = async () => ({ available: true, plugin: null });
+
 function appWithSite() {
   return createApp({
-    catalog: { get: async () => EMPTY },
+    catalog: { get: async () => EMPTY, getDetail },
     siteDist: './server/test/fixtures/site',
   });
 }
@@ -64,7 +67,7 @@ describe('static serving', () => {
     // A misconfigured or missing SITE_DIST must not crash the not-found
     // handler; it degrades to a plain response instead.
     const app = createApp({
-      catalog: { get: async () => EMPTY },
+      catalog: { get: async () => EMPTY, getDetail },
       siteDist: './server/test/fixtures/does-not-exist',
     });
     const res = await app.request('http://test/nope.html');

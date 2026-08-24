@@ -111,3 +111,51 @@
   color: var(--vp-c-text-2);
   margin: 24px 0;
 }
+
+.gl3-plugin-description p.is-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.gl3-plugin-description :is(strong, em, code) {
+  /* Publisher markup renders inside a card, so it must not change the line box. */
+  font-size: inherit;
+}
+
+/*
+ * The standalone plugin pages, which the server renders. They are not VitePress
+ * pages, so they get none of its layout and only these three hooks. Restrained
+ * on purpose: everything else they need is already in the built stylesheet they
+ * link, which is where the palette below comes from.
+ */
+.gl3-plugin-page {
+  margin: 0 auto;
+  max-width: 46rem;
+  padding: 0 24px 64px;
+}
+
+.gl3-plugin-page-header {
+  border-bottom: 1px solid var(--vp-c-divider);
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.gl3-plugin-page-meta {
+  color: var(--vp-c-text-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  gap: 14px;
+}
+
+.gl3-plugin-more {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--vp-c-brand-1);
+  cursor: pointer;
+  font: inherit;
+}
