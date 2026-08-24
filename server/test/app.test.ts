@@ -178,6 +178,19 @@ describe('the sitemap', () => {
     expect(response.headers.get('content-type')).toContain('xml');
     expect(await response.text()).toContain('/plugins/gl3-plugins/fixer.html');
   });
+
+  it('503s when the catalogue is unreachable, rather than publishing a sitemap missing every plugin', async () => {
+    const app = createApp({
+      catalog: {
+        get: async () => ({ available: false, plugins: [] }),
+        getDetail: async () => ({ available: false, plugin: null }),
+      },
+      stylesheets: [],
+      origin: 'https://gl3.dev',
+    });
+
+    expect((await app.request('/sitemap.xml')).status).toBe(503);
+  });
 });
 
 it('resolves the plugin page route ahead of the static handler', async () => {

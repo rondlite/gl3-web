@@ -101,7 +101,15 @@ export function createApp({
   });
 
   app.get('/sitemap.xml', async (c) => {
-    const { plugins } = await catalog.get();
+    const { available, plugins } = await catalog.get();
+
+    if (!available) {
+      // 503 rather than a sitemap missing every plugin: the same reasoning as
+      // the detail route above. No sitemap during an outage is recoverable; a
+      // sitemap that drops every plugin URL reads to a crawler as mass removal.
+      return c.text('The plugin catalogue is not reachable right now.', 503);
+    }
+
     return c.text(renderSitemap({ plugins, origin }), 200, {
       'content-type': 'application/xml; charset=UTF-8',
     });
