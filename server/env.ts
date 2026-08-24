@@ -18,6 +18,13 @@ const schema = z.object({
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   // Where the VitePress build output lives, relative to the working directory.
   SITE_DIST: z.string().min(1).default('./site/.vitepress/dist'),
+  // Absolute base URL this site is served from. Needed by the sitemap and the
+  // Open Graph tags, which cannot use relative URLs.
+  PUBLIC_ORIGIN: z
+    .string()
+    .url()
+    .default('https://gl3.dev')
+    .transform((value) => value.replace(/\/+$/, '')),
 });
 
 export type Env = z.infer<typeof schema>;
