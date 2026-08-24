@@ -29,7 +29,22 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          # Deliberately NOT ghcr.io/${{ github.repository }}, which would be
+          # ghcr.io/rondlite/gl3-web. That package already exists and is owned by
+          # the GL3 monorepo, which publishes the game's web client under it: the
+          # published image carries
+          # org.opencontainers.image.source = https://github.com/rondlite/GL3.
+          #
+          # A package belongs to one repository, so this repository's
+          # GITHUB_TOKEN can never write to it, and the push fails with
+          # "denied: permission_denied: write_package". No combination of
+          # permissions, id-token scopes or image labels changes that, because
+          # the problem is ownership rather than authorisation. Two automated
+          # attempts to fix it that way both failed.
+          #
+          # The site therefore publishes under its own name. Change this only if
+          # you have also confirmed the target package is owned by this repo.
+          images: ghcr.io/${{ github.repository_owner }}/gl3-site
       - uses: docker/build-push-action@v6
         with:
           context: .

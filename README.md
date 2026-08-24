@@ -61,6 +61,12 @@ The site never fails to load because store-api is down.
 
 ## Deployment
 
-`npm run build && npm start`, or the image published to `ghcr.io/rondlite/gl3-web` on
+`npm run build && npm start`, or the image published to `ghcr.io/rondlite/gl3-site` on
 every push to the default branch. gl3-web needs network reach to store-api and the same
 `INTERNAL_API_KEY`.
+
+The image is `gl3-site` rather than `gl3-web`, even though this repository is `gl3-web`.
+`ghcr.io/rondlite/gl3-web` already exists and belongs to the GL3 monorepo, which publishes
+the game's own web client under that name. A package belongs to one repository, so pushing
+there from here fails with `permission_denied: write_package` no matter what permissions
+the workflow is given.

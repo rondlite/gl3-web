@@ -57,8 +57,18 @@ written without them in mind, because they are how the plugin ecosystem grows.
 ### One container, two halves
 
 VitePress builds the static site. A small Hono server serves that build output and hosts
-`/api/*`. The image publishes as `ghcr.io/rondlite/gl3-web`, matching how `gl3-server` and
+`/api/*`. The image publishes as `ghcr.io/rondlite/gl3-site`, matching how `gl3-server` and
 `gl3-store-api` already ship.
+
+The image is `gl3-site` rather than `gl3-web`, which is what this repository is called and
+what the first version of this spec asked for. That was wrong:
+`ghcr.io/rondlite/gl3-web` already exists and belongs to the GL3 monorepo, which publishes
+the game's own web client under it. The published image carries
+`org.opencontainers.image.source = https://github.com/rondlite/GL3`. A package belongs to
+one repository, so a push from here fails with `permission_denied: write_package`
+regardless of the permissions the workflow is granted. The failure is ownership, not
+authorisation, which is why two automated attempts to fix it by adding permissions and
+labels both failed before the cause was identified.
 
 Hono rather than Fastify: store-api is Hono 4 with zod, this is the only other service
 that talks to it, and one runtime across both keeps them legible to the same reader.
@@ -258,7 +268,7 @@ verified in CI, so a broken VitePress config cannot ship.
 ## Deployment
 
 The Dockerfile builds the VitePress output, then produces an image running the Hono
-server over it. CI publishes to `ghcr.io/rondlite/gl3-web` on push to the default branch,
+server over it. CI publishes to `ghcr.io/rondlite/gl3-site` on push to the default branch,
 matching the other two services.
 
 gl3-web needs network reach to store-api and the same `INTERNAL_API_KEY`. store-api needs
