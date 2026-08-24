@@ -33,10 +33,15 @@ describe('static serving', () => {
     // fixture with no matching file cannot prove ordering: this assertion only
     // means something because there is a file here that static serving could
     // wrongly return instead of the route's JSON if it were registered first.
+    //
+    // Asserted on the raw body text rather than res.json(): if the fixture's
+    // plain text were served instead, res.json() would throw, which fails
+    // the test but not by way of a diff that says what happened. A refactor
+    // that swallowed that exception would make this pass silently.
     const res = await appWithSite().request('http://test/api/plugins');
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(EMPTY);
+    expect(await res.text()).toBe(JSON.stringify(EMPTY));
   });
 
   it('leaves healthz alone', async () => {
@@ -45,12 +50,26 @@ describe('static serving', () => {
     const res = await appWithSite().request('http://test/healthz');
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    expect(await res.text()).toBe(JSON.stringify({ ok: true }));
   });
 
-  it('404s an unknown page rather than serving the index', async () => {
+  it('serves the built 404 page for an unknown path', async () => {
     const res = await appWithSite().request('http://test/nope.html');
 
     expect(res.status).toBe(404);
+    expect(await res.text()).toContain('gl3 404 fixture');
+  });
+
+  it('falls back to a plain 404 when the built 404 page cannot be read', async () => {
+    // A misconfigured or missing SITE_DIST must not crash the not-found
+    // handler; it degrades to a plain response instead.
+    const app = createApp({
+      catalog: { get: async () => EMPTY },
+      siteDist: './server/test/fixtures/does-not-exist',
+    });
+    const res = await app.request('http://test/nope.html');
+
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe('404 Not Found');
   });
 });

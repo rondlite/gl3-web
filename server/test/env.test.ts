@@ -28,6 +28,13 @@ describe('loadEnv', () => {
     expect(() => loadEnv(withoutUrl)).toThrow(/STORE_API_URL/);
   });
 
+  it('rejects a store api url with no scheme', () => {
+    // A typo like this is a plausible real misconfiguration: min(1) let it
+    // through, so the process booted, reported itself healthy, and every
+    // fetch to store-api failed for the container's whole lifetime.
+    expect(() => loadEnv({ ...BASE, STORE_API_URL: 'store-api' })).toThrow(/STORE_API_URL/);
+  });
+
   it('refuses to start without an internal api key', () => {
     const { INTERNAL_API_KEY: _omitted, ...withoutKey } = BASE;
     expect(() => loadEnv(withoutKey)).toThrow(/INTERNAL_API_KEY/);

@@ -61,6 +61,12 @@ function toPlugins(body: unknown): Plugin[] {
     }));
 }
 
+// How long a cold-cache failure is remembered before the next call is allowed
+// to retry store-api. Short on purpose: this only exists to stop an outage
+// from mapping every visitor request onto its own upstream attempt, not to
+// hide a real recovery for long.
+const NEGATIVE_CACHE_MS = 5_000;
+
 /**
  * Fetches the catalogue from store-api and caches it in memory.
  *
@@ -77,6 +83,41 @@ export function createCatalog(deps: {
 
   let cached: Plugin[] | null = null;
   let cachedAt = 0;
+  // Set only on a cold-cache failure, and only read when the cache is still
+  // cold. Lets a failed refresh be remembered for NEGATIVE_CACHE_MS instead
+  // of every request retrying store-api for the whole outage.
+  let failedAt: number | null = null;
+  // Holds the one in-flight refresh so concurrent callers on a miss await the
+  // same upstream call instead of each starting their own. `refresh` never
+  // rejects, it always resolves to a CatalogResult, so this can never be left
+  // permanently pending by an unhandled rejection.
+  let pending: Promise<CatalogResult> | null = null;
+
+  async function refresh(): Promise<CatalogResult> {
+    try {
+      const plugins = toPlugins(await deps.fetchCatalog());
+      cached = plugins;
+      cachedAt = now();
+      failedAt = null;
+      return { available: true, plugins: [...plugins] };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+
+      if (cached !== null) {
+        // Last known good. A stale list is always better than an empty page.
+        deps.logger.warn('catalogue refresh failed, serving cache', { err: message });
+        return { available: true, plugins: [...cached] };
+      }
+
+      // Cold cache. The page renders and says so rather than showing an empty
+      // grid, which would read as "there are no plugins". Remember the
+      // failure so the next calls serve this outcome from memory instead of
+      // reattempting store-api on every single request during an outage.
+      deps.logger.error('catalogue unavailable and nothing cached', { err: message });
+      failedAt = now();
+      return { available: false, plugins: [] };
+    }
+  }
 
   return {
     async get(): Promise<CatalogResult> {
@@ -84,25 +125,20 @@ export function createCatalog(deps: {
         return { available: true, plugins: [...cached] };
       }
 
-      try {
-        const plugins = toPlugins(await deps.fetchCatalog());
-        cached = plugins;
-        cachedAt = now();
-        return { available: true, plugins: [...plugins] };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-
-        if (cached !== null) {
-          // Last known good. A stale list is always better than an empty page.
-          deps.logger.warn('catalogue refresh failed, serving cache', { err: message });
-          return { available: true, plugins: [...cached] };
-        }
-
-        // Cold cache. The page renders and says so rather than showing an empty
-        // grid, which would read as "there are no plugins".
-        deps.logger.error('catalogue unavailable and nothing cached', { err: message });
+      if (cached === null && failedAt !== null && now() - failedAt < NEGATIVE_CACHE_MS) {
         return { available: false, plugins: [] };
       }
+
+      // Coalesce: the first caller past the checks above starts the refresh
+      // and every other caller that arrives before it settles awaits the
+      // same promise rather than opening its own upstream call.
+      if (pending === null) {
+        pending = refresh().finally(() => {
+          pending = null;
+        });
+      }
+
+      return pending;
     },
   };
 }

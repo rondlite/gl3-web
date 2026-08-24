@@ -1,5 +1,7 @@
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import type { CatalogResult } from './catalog.js';
 import { type Logger, silentLogger } from './log.js';
@@ -61,6 +63,19 @@ export function createApp({
   // Registered last on purpose: Hono matches in registration order, so putting
   // this above the API routes would let a file named like a route shadow it.
   app.use('/*', serveStatic({ root: siteDist }));
+
+  // Without this, an unmatched URL gets Hono's built-in plain-text 404 rather
+  // than the styled page VitePress already built. Falls back to that plain
+  // text itself if the file cannot be read, so a misconfigured SITE_DIST
+  // degrades to a bare response instead of throwing out of the handler.
+  app.notFound(async (c) => {
+    try {
+      const body = await readFile(join(siteDist, '404.html'), 'utf-8');
+      return c.html(body, 404);
+    } catch {
+      return c.text('404 Not Found', 404);
+    }
+  });
 
   return app;
 }

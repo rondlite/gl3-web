@@ -44,7 +44,7 @@ broken config cannot ship.
 | `INTERNAL_API_KEY` | yes | The shared secret store-api validates |
 | `PORT` | no | Default 8080 |
 | `CATALOG_CACHE_MS` | no | Default 60000 |
-| `SITE_DIST` | no | Default `./site/.vitepress/dist` |
+| `SITE_DIST` | no | Default `./site/.vitepress/dist`. Resolved relative to the process working directory, so an absolute path serves nothing. |
 | `LOG_LEVEL` | no | Default `info` |
 
 `STORE_API_URL` and `INTERNAL_API_KEY` are required. A site with no catalogue source has

@@ -184,6 +184,52 @@ describe('createCatalog', () => {
     expect(second).toEqual(first);
   });
 
+  it('coalesces concurrent calls on a cold cache into a single upstream fetch', async () => {
+    // /api/plugins is public and unauthenticated; store-api is not. Ten
+    // callers arriving before the first refresh settles must produce one
+    // upstream call, not ten.
+    let calls = 0;
+    const catalog = catalogWith(async () => {
+      calls += 1;
+      return RESPONSE;
+    });
+
+    const results = await Promise.all(Array.from({ length: 10 }, () => catalog.get()));
+
+    expect(calls).toBe(1);
+    for (const result of results) {
+      expect(result.plugins).toHaveLength(2);
+    }
+  });
+
+  it('serves a cached failure during the negative-cache window instead of retrying every call', async () => {
+    let calls = 0;
+    let clock = 1_000;
+    const catalog = catalogWith(
+      async () => {
+        calls += 1;
+        throw new Error('connect ECONNREFUSED');
+      },
+      60_000,
+      () => clock
+    );
+
+    const first = await catalog.get();
+    expect(first).toEqual({ available: false, plugins: [] });
+    expect(calls).toBe(1);
+
+    // Still inside the negative-cache window: served from memory, no retry.
+    clock += 1_000;
+    await catalog.get();
+    await catalog.get();
+    expect(calls).toBe(1);
+
+    // Window elapsed: the next call is allowed to try store-api again.
+    clock += 5_000;
+    await catalog.get();
+    expect(calls).toBe(2);
+  });
+
   it('does not expose the cached array to mutation', async () => {
     const catalog = catalogWith(async () => RESPONSE);
 

@@ -5,7 +5,7 @@ const schema = z.object({
   // permanently broken plugins page, so failing at boot beats serving one.
   STORE_API_URL: z
     .string()
-    .min(1)
+    .url()
     .transform((value) => value.replace(/\/+$/, '')),
   // The shared secret store-api validates. 32 chars is the point below which a
   // shared secret is guessable, matching store-api's own floor.

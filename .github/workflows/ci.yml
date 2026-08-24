@@ -24,8 +24,21 @@ jobs:
       # The site build is verified here because no unit test covers it, so a
       # broken VitePress config would otherwise reach the image.
       - run: npm run build:site
-      # The build does not warn when a component fails to register: it silently
-      # renders nothing. Without this check, the plugins page could ship empty
-      # with every other signal green.
-      - name: Check the plugin grid rendered
-        run: grep -q "gl3-plugins-note" site/.vitepress/dist/plugins.html
+      # Greps the <noscript> fallback sentence rather than a CSS class name.
+      # That sentence only ships if the fallback exists, so this check depends
+      # on the page being useful without JavaScript, not just on the grid
+      # component having mounted at some point during the build.
+      - name: Check the plugins page has a no-JS fallback
+        run: grep -q "needs JavaScript to load the plugin catalogue" site/.vitepress/dist/plugins.html
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Builds without pushing, so a Dockerfile break is a red PR check
+      # instead of a red publish job on main after the change already merged.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false

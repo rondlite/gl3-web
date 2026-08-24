@@ -36,32 +36,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <p v-if="state === 'loading'" class="gl3-plugins-note">Loading the catalogue.</p>
+  <p v-if="state === 'loading'" class="gl3-plugins-note" role="status">Loading the catalogue.</p>
 
-  <p v-else-if="state === 'unavailable'" class="gl3-plugins-note">
+  <p v-else-if="state === 'unavailable'" class="gl3-plugins-note" role="status">
     The plugin catalogue is not reachable right now. Everything else on this site still
     works, and the list will come back on its own.
   </p>
 
-  <p v-else-if="plugins.length === 0" class="gl3-plugins-note">
+  <p v-else-if="plugins.length === 0" class="gl3-plugins-note" role="status">
     No plugins are published yet.
   </p>
 
-  <div v-else class="gl3-plugins">
-    <article v-for="plugin in plugins" :key="plugin.name" class="gl3-plugin">
-      <header>
-        <h3>{{ plugin.name }}</h3>
-        <span :class="['gl3-tag', plugin.paid ? 'is-paid' : 'is-free']">
-          {{ plugin.paid ? 'Premium' : 'Free' }}
-        </span>
-      </header>
+  <ul v-else class="gl3-plugins">
+    <li v-for="plugin in plugins" :key="plugin.name">
+      <article class="gl3-plugin">
+        <header>
+          <h3>{{ plugin.name }}</h3>
+          <span :class="['gl3-tag', plugin.paid ? 'is-paid' : 'is-free']">
+            {{ plugin.paid ? 'Premium' : 'Free' }}
+          </span>
+        </header>
 
-      <p v-if="plugin.description">{{ plugin.description }}</p>
+        <p v-if="plugin.description">{{ plugin.description }}</p>
 
-      <footer>
-        <code>{{ plugin.install }}</code>
-        <span class="gl3-version">v{{ plugin.version }}</span>
-      </footer>
-    </article>
-  </div>
+        <footer>
+          <code>{{ plugin.install }}</code>
+          <span class="gl3-version">v{{ plugin.version }}</span>
+        </footer>
+      </article>
+    </li>
+  </ul>
+
+  <noscript>
+    <p class="gl3-plugins-note">
+      This page needs JavaScript to load the plugin catalogue. Browse published packages
+      under the <a href="https://www.npmjs.com/search?q=%40gl3">@gl3 scope on npm</a> or
+      see <a href="https://docs.gl3.dev">docs.gl3.dev</a>.
+    </p>
+  </noscript>
 </template>
