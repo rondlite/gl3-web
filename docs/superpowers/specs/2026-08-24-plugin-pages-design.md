@@ -201,7 +201,19 @@ so short descriptions do not get a control that expands nothing. The control tog
 
 ## Testing
 
-`vitest.config.ts` currently includes only `server/test/**`. It gains the site tests.
+Everything that decides what HTML a visitor receives now lives on the server, so the
+whole rendering pipeline is testable without a browser, a DOM shim or a component
+harness. That is a direct benefit of moving rendering off the client, and it is why
+`vitest.config.ts` does not need to change.
+
+What remains untested is narrow and named here rather than left implied: the card's
+clamp measurement compares `scrollHeight` to `clientHeight` in a mounted component, and
+proving that would mean adding `@vue/test-utils` and a DOM implementation for one
+behaviour. The existing CI canary, which greps the built `plugins.html`, already catches
+the failure mode that actually bit E1, where the component silently stopped being
+registered and every check stayed green. The clamp itself is CSS plus one comparison,
+and a wrong answer there shows a control that expands nothing rather than breaking the
+page.
 
 The markdown module is pure and server-side, so it is tested directly with no DOM
 shim. The security tests are the ones that must fail loudly if the sanitiser is ever
