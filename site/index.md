@@ -3,11 +3,11 @@ layout: home
 
 hero:
   # No name field: the lockup below already says GL3, so the tagline gets the h1.
-  text: A platform for persistent browser games
+  text: The next generation engine for persistent browser games
   image:
     src: /gl3-logo.webp
     alt: GL3, a PBBG game engine
-  tagline: One command boots the whole thing. The default is a complete gangster game, and GL3_PROFILE=framework gives you the engine on its own.
+  tagline: Typed events over WebSockets, an append-only ledger under every balance movement, and plugins that own their tables and migrations. One command boots the whole thing; one more brings your V2, openPBBG or MCCodes game across.
   actions:
     - theme: brand
       text: Get started
@@ -20,12 +20,12 @@ hero:
       link: https://game.gl3.dev
 
 features:
-  - title: Boots in one command
-    details: Postgres, Redis, the server, the web client and a router come up together from published images. Register, and the first player becomes administrator.
-  - title: Migrates V2 and openPBBG
-    details: gl3-migrate carries an existing game across in one command, players and passwords included.
+  - title: Realtime by architecture
+    details: Every outcome is a typed event, validated at the boundary, published after the transaction commits and fanned out by audience over WebSockets. The client renders it live.
+  - title: Migrates V2, openPBBG and MCCodes v2
+    details: gl3-migrate carries an existing game across in one command, players and passwords included. Legacy passwords upgrade to argon2id on first login.
   - title: Built to be extended
-    details: A first party plugin SDK, a typed event system, and plugins that own their own tables and migrations.
+    details: A first party plugin SDK, a typed event system, and plugins that own their own tables and migrations. Boots complete in one command; the first player becomes administrator.
 ---
 
 ## Two faces, one codebase
@@ -51,6 +51,11 @@ time with the same variable that selects any optional plugin:
 ```bash
 GL3_PROFILE=framework PLUGIN_IDS=crimes
 ```
+
+The MCCodes mechanics ship the same way. An anchor plugin, `mccodes-attributes`, declares
+the energy, brave and will pools with MCCodes' own numbers, and gym, houses, progression,
+education, jobs and temple build on it. All seven are bundled but load only when selected,
+so a game that never asks for them is untouched by them.
 
 [The framework profile](https://docs.gl3.dev/operators/framework-profile.html) covers what
 each profile registers and how plugin requirements resolve.
