@@ -36,6 +36,72 @@
   border-radius: 8px;
 }
 
+/*
+ * The proof strip under the hero: four hard facts in one band. Rendered by
+ * HomeProof.vue through the home-hero-after slot, so it sits between the hero
+ * and the feature cards and shares the hero's horizontal padding.
+ */
+.gl3-proof {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--vp-c-divider);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  list-style: none;
+  margin: 0 auto;
+  max-width: 1152px;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .gl3-proof {
+    margin: 0 48px;
+  }
+}
+
+@media (min-width: 960px) {
+  .gl3-proof {
+    margin: 0 64px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .gl3-proof {
+    margin: 0 auto;
+  }
+}
+
+.gl3-proof li {
+  background: var(--vp-c-bg);
+  margin: 0;
+  padding: 18px 20px;
+  text-align: center;
+}
+
+.gl3-proof strong {
+  color: var(--vp-c-brand-1);
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.gl3-proof span {
+  color: var(--vp-c-text-2);
+  display: block;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+@media (max-width: 639px) {
+  .gl3-proof {
+    grid-template-columns: repeat(2, 1fr);
+    margin: 0 24px;
+  }
+}
+
 .gl3-plugins {
   display: grid;
   gap: 16px;
