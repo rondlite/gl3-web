@@ -111,12 +111,16 @@ export function renderPluginPage(input: {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${description}">
 <meta property="og:url" content="${canonical}">
+<meta property="og:image" content="${escapeHtml(origin)}/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 ${links}
 <script>${THEME_SCRIPT}</script>
 </head>
 <body class="gl3-plugin-page">
 <header class="gl3-plugin-page-header">
-  <a href="/">GL3</a>
+  <a href="/"><img class="gl3-plugin-page-logo" src="/gl3-wordmark.webp" alt="GL3" width="309" height="112"></a>
   <a href="/plugins.html">Plugins</a>
 </header>
 <main>

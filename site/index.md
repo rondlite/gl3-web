@@ -2,8 +2,11 @@
 layout: home
 
 hero:
-  name: GL3
+  # No name field: the lockup below already says GL3, so the tagline gets the h1.
   text: A platform for persistent browser games
+  image:
+    src: /gl3-logo.webp
+    alt: GL3, a PBBG game engine
   tagline: One command boots the whole thing. The default is a complete gangster game, and GL3_PROFILE=framework gives you the engine on its own.
   actions:
     - theme: brand
