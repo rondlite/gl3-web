@@ -159,3 +159,46 @@
   cursor: pointer;
   font: inherit;
 }
+
+/*
+ * The logo. It is a dark lockup on black, so it carries its own background
+ * rather than sitting on the page's, and both places it appears give it a
+ * rounded plate so it reads as a mark and not as a hole in the layout.
+ */
+.VPNavBarTitle .logo {
+  background: #000;
+  border-radius: 6px;
+  height: 26px;
+  margin-right: 0;
+  padding: 3px 7px;
+}
+
+/* The lockup is a wide banner, so the hero's square image slot has to give. */
+.VPHero .image-container {
+  padding: 0;
+  transform: none;
+}
+
+.VPHero .image-bg {
+  display: none;
+}
+
+.VPHero .image-src {
+  background: #000;
+  border-radius: 14px;
+  max-height: none;
+  max-width: 100%;
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 100%;
+}
+
+.gl3-plugin-page-logo {
+  background: #000;
+  border-radius: 6px;
+  height: 26px;
+  padding: 3px 7px;
+  width: auto;
+}
