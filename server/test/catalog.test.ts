@@ -372,6 +372,26 @@ describe('getDetail', () => {
     expect(detailCalls).toBe(0);
   });
 
+  it('serves a listed package whose detail store-api does not have yet', async () => {
+    // A freshly published package reaches the catalogue list before store-api's
+    // detail endpoint knows about it, and that 404 used to become the site's
+    // 404: the plugin showed in the grid and its page was missing until the
+    // next request happened to land after the gap closed. The list entry is
+    // enough for a page, so it gets one.
+    const catalog = createCatalog({
+      fetchCatalog: async () => ({ packages: [pkg({ package: '@gl3/plugin-sdk' })] }),
+      fetchDetail: async () => null,
+      cacheMs: 1000,
+      logger: silentLogger(),
+    });
+
+    const result = await catalog.getDetail('@gl3/plugin-sdk');
+
+    expect(result.available).toBe(true);
+    expect(result.plugin?.name).toBe('@gl3/plugin-sdk');
+    expect(result.plugin?.readmeHtml).toBeNull();
+  });
+
   it('serves the last known good readme when a later fetch fails', async () => {
     let attempt = 0;
     const catalog = createCatalog({

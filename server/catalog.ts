@@ -200,9 +200,20 @@ export function createCatalog(deps: {
     try {
       const body = await deps.fetchDetail(packageName);
       if (body === null) {
-        // In our list but not in store-api's. A race with a removal, so treat
-        // it as missing without caching a negative.
-        return { available: true, plugin: null };
+        // In our list, but store-api's detail endpoint does not have it. That is
+        // a freshly published package whose detail has not caught up with the
+        // list yet, or a race with a removal. Either way the list entry is a
+        // page worth serving, and it is the same answer as a failed detail
+        // fetch below. 404ing here instead meant a new plugin appeared in the
+        // grid with a link to a missing page.
+        //
+        // Deliberately not cached, positively or negatively: the readme should
+        // appear on the next request once store-api has it, not one cache
+        // lifetime later.
+        deps.logger.warn('detail not found upstream, serving list metadata without a readme', {
+          package: packageName,
+        });
+        return { available: true, plugin: { ...list, readmeHtml: null } };
       }
       const plugin = toDetail(list, body);
       details.set(packageName, { plugin, at: now() });
