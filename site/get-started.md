@@ -2,10 +2,11 @@
 
 ## Run the whole thing
 
-You need Docker. Nothing else.
+You need Docker and one credential: set `GL3_NPM_TOKEN` in `.env`, the npm.gl3.dev
+registry token the plugins installer uses.
 
 ```bash
-git clone https://github.com/rondlite/GL3.git
+git clone https://github.com/GL3PBBG/GL3.git
 cd GL3
 docker compose --profile app up
 ```
@@ -16,15 +17,17 @@ starter content seeded, the web client, and a router that keeps the browser same
 Open <http://localhost:8080> and register. The first player to register becomes the
 administrator.
 
-That default boot is the gangster game. For the engine on its own, with the eight
-game-agnostic plugins and none of the gameplay:
+That default boot is the `gl3` hybrid, all twenty-seven bundled plugins with curated
+content. `GL3_PROFILE` picks the other three modes: `v2` is the faithful Gangster
+Legends V2 port, `mccodes` is the MCCodes-parity game, and `framework` is the engine on
+its own, with the eight game-agnostic plugins and none of the gameplay:
 
 ```bash
 GL3_PROFILE=framework docker compose --profile app up
 ```
 
 Gameplay plugins can be added back one at a time with `PLUGIN_IDS`. See
-[The framework profile](https://docs.gl3.dev/operators/framework-profile.html).
+[Game modes](https://docs.gl3.dev/operators/framework-profile.html).
 
 By default the email verification link is printed to the logs rather than sent:
 

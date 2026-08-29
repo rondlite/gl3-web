@@ -28,14 +28,24 @@ features:
     details: A first party plugin SDK, a typed event system, and plugins that own their own tables and migrations. Boots complete in one command; the first player becomes administrator.
 ---
 
-## Two faces, one codebase
+## Four faces, one codebase
 
-`GL3_PROFILE` decides which of the twenty bundled plugins load at boot.
+`GL3_PROFILE` decides which of the twenty-seven bundled plugins load at boot. Four
+values parse.
 
-`full` is the default and it is the gangster game. All twenty load, including the twelve
-gameplay ones: crimes, combat, gangs, travel, bullets, organised crime, bounties,
-detectives, car theft, properties, casino and blackjack. Jail and hospital come with it
-too, as core routes rather than plugins.
+`gl3` is the default and the flagship hybrid. All twenty-seven load: the game-agnostic
+framework set, the twelve V2 gameplay plugins, and the MCCodes family, with curated
+content on top. Jail and hospital come with every gameplay profile too, as core routes
+rather than plugins.
+
+`v2` is the faithful Gangster Legends V2 port. Framework plus the twelve gameplay
+plugins: crimes, combat, gangs, travel, bullets, organised crime, bounties, detectives,
+car theft, properties, casino and blackjack.
+
+`mccodes` is the MCCodes-parity game. An anchor plugin, `mccodes-attributes`, declares
+the energy, brave and will pools with MCCodes' own numbers, and gym, houses, progression,
+education, jobs and temple build on it. The profile also pulls in crimes, combat, travel
+and detectives, where its mechanics live.
 
 `framework` is the engine on its own. It loads the eight game-agnostic plugins, which are
 ranks, notifications, news, bank, mail, forum, inventory and membership. That is
@@ -52,12 +62,10 @@ time with the same variable that selects any optional plugin:
 GL3_PROFILE=framework PLUGIN_IDS=crimes
 ```
 
-The MCCodes mechanics ship the same way. An anchor plugin, `mccodes-attributes`, declares
-the energy, brave and will pools with MCCodes' own numbers, and gym, houses, progression,
-education, jobs and temple build on it. All seven are bundled but load only when selected,
-so a game that never asks for them is untouched by them.
+Cross-plugin requirements are declared on the manifests and enforced at boot, so a
+selection that would not run refuses to start instead of half working.
 
-[The framework profile](https://docs.gl3.dev/operators/framework-profile.html) covers what
+[Game modes](https://docs.gl3.dev/operators/framework-profile.html) covers what
 each profile registers and how plugin requirements resolve.
 
 ## Why move off what you are running
@@ -86,5 +94,5 @@ Node 22, TypeScript in strict mode, Fastify, PostgreSQL 16, and Redis 7. Real mi
 real tests, and a documented plugin API.
 
 If you would rather read code than marketing copy, the engine is on
-[GitHub](https://github.com/rondlite/GL3) and the documentation is at
+[GitHub](https://github.com/GL3PBBG/GL3) and the documentation is at
 [docs.gl3.dev](https://docs.gl3.dev).
