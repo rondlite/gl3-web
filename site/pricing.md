@@ -11,7 +11,7 @@ no activation step at install time.
 
 ## Price
 
-Pricing is still being finalised. [Get in touch](https://github.com/rondlite/GL3/discussions)
+Pricing is still being finalised. [Get in touch](https://github.com/GL3PBBG/GL3/discussions)
 to be told when it lands.
 
 ## What stays free
@@ -28,5 +28,5 @@ Once purchasing opens, a licence comes with an npm token for the private registr
 npm at it, install the plugins you want, and they load like any other dependency.
 
 ```bash
-npm install @gl3-plugins/combat
+npm install @gl3-plugins/market
 ```
