@@ -41,6 +41,18 @@ Set `GL3_PUBLIC_ORIGIN` to the URL players will reach the game at, since it feed
 CORS allowlist that the WebSocket gateway also checks, and set `GL3_PORT` if 8080 is
 taken. Nothing else needs editing.
 
+If the origin is only reachable through a trusted proxy such as a Cloudflare tunnel,
+also set `CLIENT_IP_HEADER` so rate limiting and the
+[anti-bot toolkit](https://docs.gl3.dev/operators/anti-bot.html) see real client
+addresses instead of the tunnel's.
+
+## Make it your game
+
+The game name is a setting and the login and header logos are bindable slots, both
+edited from the theme admin. Crimes, items, courses, jobs, houses and their art are all
+authored from the admin while the game runs, so reshaping the seeded starter content
+into your own game needs no code.
+
 ## Bring an existing game across
 
 `gl3-migrate` moves an existing Gangster Legends V2 or openPBBG game in one command,
