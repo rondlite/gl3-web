@@ -3,6 +3,7 @@ import DefaultTheme from 'vitepress/theme';
 import type { Theme } from 'vitepress';
 
 import HomeProof from './components/HomeProof.vue';
+import HomeOverview from './components/HomeOverview.vue';
 import PluginGrid from './components/PluginGrid.vue';
 import PremiumPurchase from './components/PremiumPurchase.vue';
 import CheckoutResult from './components/CheckoutResult.vue';
@@ -16,6 +17,7 @@ const theme: Theme = {
       'home-hero-after': () => h(HomeProof),
     }),
   enhanceApp({ app }) {
+    app.component('HomeOverview', HomeOverview);
     app.component('PluginGrid', PluginGrid);
     app.component('PremiumPurchase', PremiumPurchase);
     app.component('CheckoutResult', CheckoutResult);
