@@ -79,11 +79,11 @@ and the support described above.
 ### How do I install premium plugins?
 
 Your purchase gives you an npm token for the private registry. Your credentials are
-shown after checkout and sent by email. Sign in to the registry, then install the
-plugins you want:
+shown after checkout and sent by email. GL3 includes a `.npmrc` that configures the
+plugin registry. From your GL3 project directory, sign in and install the plugins
+you want:
 
 ```bash
-npm config set @gl3-plugins:registry https://npm.gl3.dev
 npm login --registry https://npm.gl3.dev --auth-type=legacy
 npm install @gl3-plugins/market
 ```
