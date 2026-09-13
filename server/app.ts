@@ -3,12 +3,14 @@ import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { createStorefront, type StorefrontConfig } from './storefront.js';
 import { PLUGIN_SCOPES } from './catalog.js';
 import type { CatalogResult, DetailResult } from './catalog.js';
 import { type Logger, silentLogger } from './log.js';
 import { renderPluginPage, renderSitemap } from './plugin-page.js';
 
 export type AppDeps = {
+  storefront?: StorefrontConfig;
   catalog: {
     get: () => Promise<CatalogResult>;
     getDetail: (packageName: string) => Promise<DetailResult>;
@@ -24,6 +26,7 @@ export type AppDeps = {
 
 export function createApp({
   catalog,
+  storefront,
   logger = silentLogger(),
   siteDist = './site/.vitepress/dist',
   stylesheets = [],
@@ -53,6 +56,14 @@ export function createApp({
       err: err.message,
     });
     return c.json({ error: 'internal' }, 500);
+  });
+
+  if (storefront) app.route('/api', createStorefront(storefront));
+
+  app.use('/checkout.html', async (c, next) => {
+    c.header('Cache-Control', 'no-store');
+    c.header('Referrer-Policy', 'no-referrer');
+    await next();
   });
 
   app.get('/healthz', (c) => c.json({ ok: true }));

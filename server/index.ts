@@ -27,6 +27,7 @@ const catalog = createCatalog({
 });
 
 const app = createApp({
+  storefront: { url: env.STORE_API_URL, key: env.INTERNAL_API_KEY, origin: env.PUBLIC_ORIGIN },
   catalog,
   logger,
   siteDist: env.SITE_DIST,

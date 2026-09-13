@@ -2,9 +2,9 @@
 
 The GL3 website: [gl3.dev](https://gl3.dev).
 
-Four pages built with VitePress, served by a small Hono server that also hosts
-`/api/plugins`. That route is the only thing holding `INTERNAL_API_KEY`, so the browser
-never sees it and never talks to store-api directly.
+Pages built with VitePress, served by a small Hono server that also hosts the plugin
+catalogue and Premium storefront APIs. The server holds `INTERNAL_API_KEY`, so the
+browser never sees it and never talks to store-api directly.
 
 ```
 browser ──> gl3-web ──> gl3-store-api /v1/catalog/packages
@@ -96,3 +96,35 @@ The image is `gl3-site` rather than `gl3-web`, even though this repository is `g
 the game's own web client under that name. A package belongs to one repository, so pushing
 there from here fails with `permission_denied: write_package` no matter what permissions
 the workflow is given.
+
+## Premium storefront
+
+The pricing decision is recorded in
+[`docs/decisions/2026-09-13-premium-pricing.md`](docs/decisions/2026-09-13-premium-pricing.md):
+€69 for the first year, €49 for annual renewals including after a lapse, VAT included.
+Support is through [Discord](https://discord.gg/6U8ezKE8T); AI endpoints are optional.
+
+`/pricing.html` handles new-buyer email capture and authenticated €49 renewals.
+`/checkout.html` checks fulfilment and shows newly minted credentials once.
+`/account.html` supports token sign-in, paid-through dates, the Stripe cancellation and
+payment portal, and replacing the presented npm token.
+
+The Hono server proxies only the explicit storefront routes to store-api. It keeps
+credentials in AES-GCM encrypted, HttpOnly, SameSite cookies (Secure and `__Host-` prefixed
+on HTTPS). Cookie encryption is derived from `INTERNAL_API_KEY` and `PUBLIC_ORIGIN`, so
+all replicas must share both; rotating either signs users out. Account cookies expire
+after eight hours, checkout proof after seven days. No credentials enter localStorage.
+The API reauthenticates account credentials on every account operation.
+
+`PUBLIC_ORIGIN` must be the exact browser origin, including the development port.
+Browser POST routes require that Origin and JSON bodies. The Stripe webhook at
+`POST /api/premium/webhook` instead forwards raw bytes and the Stripe signature for
+store-api verification. Proxy error responses never expose upstream error text.
+
+Deploy with the annual store-api implementation and its required migrations, prices,
+portal configuration, Resend sender and encryption key; see that repository's README.
+The website rejects an older one-time pricing contract before opening checkout.
+The listed price remains visible when billing is unavailable, but checkout is disabled.
+
+Website tests do not connect to PostgreSQL. They include pricing-contract and cookie,
+CSRF, webhook and redirect checks. Some catalogue tests bind a local HTTP socket.

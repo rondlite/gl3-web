@@ -4,6 +4,9 @@ import type { Theme } from 'vitepress';
 
 import HomeProof from './components/HomeProof.vue';
 import PluginGrid from './components/PluginGrid.vue';
+import PremiumPurchase from './components/PremiumPurchase.vue';
+import CheckoutResult from './components/CheckoutResult.vue';
+import AccountPanel from './components/AccountPanel.vue';
 import './custom.css';
 
 const theme: Theme = {
@@ -14,6 +17,9 @@ const theme: Theme = {
     }),
   enhanceApp({ app }) {
     app.component('PluginGrid', PluginGrid);
+    app.component('PremiumPurchase', PremiumPurchase);
+    app.component('CheckoutResult', CheckoutResult);
+    app.component('AccountPanel', AccountPanel);
   },
 };
 
